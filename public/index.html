@@ -822,6 +822,7 @@ let displayedPhotoCount = 100; // How many photos currently shown
 let currentFilteredPhotos = []; // Track current photo set for Load More
 let displayedPersonPhotoCount = 100; // How many photos shown in person view
 const preloadedImages = new Set();
+let lightboxHistoryAdded = false; // Track if we added history state for lightbox
 
 const CAROUSEL_WINDOW = 10; // thumbnails on each side of current
 const PHOTOS_PER_CHUNK = 100; // Chunk size for Load More
@@ -1295,6 +1296,10 @@ function openLightbox(idx, photosContext = null) {
   updateLightboxContent();
   document.getElementById('lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
+  
+  // Push state for back button support on mobile
+  window.history.pushState({ lightboxOpen: true }, '');
+  lightboxHistoryAdded = true;
 }
 
 function buildCarousel() {
@@ -1359,11 +1364,17 @@ function jumpToPhoto(idx, pos) {
   updateLightboxContent();
 }
 
-function closeLightbox(e) {
+function closeLightbox(e, fromPopstate = false) {
   if (e && e.target !== document.getElementById('lightbox') &&
       !e.target.classList.contains('lightbox-close')) return;
   document.getElementById('lightbox').classList.remove('open');
   document.body.style.overflow = '';
+  
+  // If closing via UI and we added history, go back
+  if (!fromPopstate && lightboxHistoryAdded) {
+    lightboxHistoryAdded = false;
+    window.history.back();
+  }
 }
 
 document.addEventListener('keydown', e => {
@@ -1439,7 +1450,14 @@ function restorePageState() {
 
 // Handle browser back/forward buttons
 window.addEventListener('popstate', () => {
-  restorePageState();
+  const lightbox = document.getElementById('lightbox');
+  if (lightbox.classList.contains('open')) {
+    // Close lightbox when back button is pressed
+    lightboxHistoryAdded = false;
+    closeLightbox(null, true);
+  } else {
+    restorePageState();
+  }
 });
 
 init();
