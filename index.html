@@ -672,14 +672,14 @@
 
   <!-- ── Gallery Page ── -->
   <div id="page-gallery" class="page active">
-    <div class="search-wrap">
+    <!-- <div class="search-wrap">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
       <input class="search-input" id="search-input" type="text"
              placeholder="Search by person's name…"
              oninput="debouncedFilter(this.value)">
-    </div>
+    </div> -->
 
     <div class="section-header">
       <span class="section-title">All Photos</span>
@@ -721,6 +721,14 @@
 
     <!-- People list -->
     <div id="people-list-view">
+      <div class="search-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input class="search-input" id="people-search-input" type="text"
+               placeholder="Search by person's name…"
+               oninput="debouncedFilterPeople(this.value)">
+      </div>
       <div class="section-header">
         <span class="section-title">People</span>
         <span class="section-count" id="people-count"></span>
@@ -1019,7 +1027,7 @@ function renderPeople() {
     // If this is Binod Singhania, add Shiv Kumar's photos to the count and change display name
     if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
       photoCount += PEOPLE['Shiv Kumar Agarwal'].photos.length;
-      displayName = 'Binod Dadu & Shivu Dadu';
+      displayName = 'Binod & Shiv';
     }
 
     return `
@@ -1045,6 +1053,64 @@ function renderPeople() {
   // }).join('');
 }
 
+// Debounce helper for people search
+let filterPeopleTimeout;
+function debouncedFilterPeople(query) {
+  clearTimeout(filterPeopleTimeout);
+  filterPeopleTimeout = setTimeout(() => filterPeople(query), 200);
+}
+
+function filterPeople(query) {
+  const q = query.trim().toLowerCase();
+  const grid  = document.getElementById('people-grid');
+  const count = document.getElementById('people-count');
+  
+  // Special case: Merge Binod Singhania and Shiv Kumar Agarwal
+  let filteredList = PEOPLE_LIST.filter(name => name !== 'Shiv Kumar Agarwal');
+  
+  if (q) {
+    // Filter by name
+    filteredList = filteredList.filter(name => {
+      if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
+        // For merged Binod & Shiv Kumar, search in both names and display name
+        return name.toLowerCase().includes(q) || 
+               'Shiv Kumar Agarwal'.toLowerCase().includes(q) ||
+               'Binod & Shiv'.toLowerCase().includes(q);
+      }
+      return name.toLowerCase().includes(q);
+    });
+  }
+  
+  count.textContent = `${filteredList.length} people`;
+  
+  if (filteredList.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">No people found.</div>';
+    return;
+  }
+  
+  grid.innerHTML = filteredList.map((name, i) => {
+    const person = PEOPLE[name];
+    let photoCount = person.photos.length;
+    let displayName = name;
+    
+    // If this is Binod Singhania, add Shiv Kumar's photos to the count and change display name
+    if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
+      photoCount += PEOPLE['Shiv Kumar Agarwal'].photos.length;
+      displayName = 'Binod & Shiv';
+    }
+
+    return `
+      <div class="person-card" "
+           onclick="openPerson('${name.replace(/'/g, "\\'")}')">
+        <div class="person-avatar-placeholder">${displayName.charAt(0)}</div>
+        <div class="person-info">
+          <div class="person-name">${displayName}</div>
+          <div class="person-count">${photoCount} photo${photoCount !== 1 ? 's' : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
 function openPerson(name) {
   currentPersonName = name;
   displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
@@ -1058,7 +1124,7 @@ function openPerson(name) {
   if ((name === 'Binod Singhania' || name === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
     // Merge both people's photos
     allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
-    displayName = 'Binod Dadu & Shivu Dadu';
+    displayName = 'Binod & Shiv';
     funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
     // Update person object to use merged photos
     person = { photos: allPhotos };
@@ -1135,6 +1201,13 @@ function closePerson() {
   document.getElementById('people-list-view').style.display = 'block';
   document.getElementById('people-detail-view').classList.remove('active');
   
+  // Clear people search
+  const peopleSearchInput = document.getElementById('people-search-input');
+  if (peopleSearchInput) {
+    peopleSearchInput.value = '';
+    renderPeople();
+  }
+  
   // Update URL
   const url = new URL(window.location);
   url.searchParams.delete('person');
@@ -1153,11 +1226,20 @@ function showPage(id) {
   // Reset gallery pagination when switching to gallery
   if (id === 'gallery') {
     displayedPhotoCount = PHOTOS_PER_CHUNK;
-    const searchValue = document.getElementById('search-input').value.trim();
-    if (searchValue) {
-      filterGallery(searchValue);
-    } else {
+    // const searchValue = document.getElementById('search-input').value.trim();
+    // if (searchValue) {
+    //   filterGallery(searchValue);
+    // } else {
       renderGallery(PHOTOS);
+    // }
+  }
+  
+  // Reset people search when switching to people page
+  if (id === 'people') {
+    const peopleSearchInput = document.getElementById('people-search-input');
+    if (peopleSearchInput) {
+      peopleSearchInput.value = '';
+      renderPeople();
     }
   }
   
@@ -1309,7 +1391,7 @@ function restorePageState() {
       if ((person === 'Binod Singhania' || person === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
         // Merge both people's photos
         allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
-        displayName = 'Binod Dadu & Shivu Dadu';
+        displayName = 'Binod & Shiv';
         funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
         // Update person object to use merged photos
         personData = { photos: allPhotos };
@@ -1339,12 +1421,18 @@ function restorePageState() {
       currentPersonName = null;
       document.getElementById('people-list-view').style.display = 'block';
       document.getElementById('people-detail-view').classList.remove('active');
+      // Clear people search
+      const peopleSearchInput = document.getElementById('people-search-input');
+      if (peopleSearchInput) {
+        peopleSearchInput.value = '';
+      }
     }
-  } else if (searchName) {
-    // Handle gallery search
-    document.getElementById('search-input').value = searchName;
-    filterGallery(searchName);
-  }
+  } 
+  // else if (searchName) {
+  //   // Handle gallery search
+  //   document.getElementById('search-input').value = searchName;
+  //   filterGallery(searchName);
+  // }
 }
 
 // Handle browser back/forward buttons
