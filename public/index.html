@@ -190,6 +190,9 @@
     aspect-ratio: 1;
     cursor: pointer;
     transition: transform 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .photo-card:hover { transform: scale(1.02); }
@@ -199,6 +202,9 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .photo-card .photo-overlay {
@@ -946,6 +952,7 @@ function photoCardHTML(photo, globalIdx) {
   return `
     <div class="photo-card" id="card-${globalIdx}" 
          onclick="handleCardClick(${globalIdx}, event)"
+         oncontextmenu="return false"
          ontouchstart="handleLongPressStart(${globalIdx}, event)"
          ontouchend="handleLongPressEnd(event)"
          ontouchmove="handleLongPressCancel()"
