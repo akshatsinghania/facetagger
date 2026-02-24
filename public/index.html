@@ -1229,7 +1229,7 @@ async function sharePhoto(idx) {
   
   // Check if Web Share API is available
   if (!navigator.share) {
-    alert('Sharing is not supported on this browser. Use the download button instead.');
+    // alert('Sharing is not supported on this browser. Use the download button instead.');
     return;
   }
   
@@ -1265,7 +1265,7 @@ async function sharePhoto(idx) {
       console.log('User cancelled share');
     } else {
       console.error('Share error:', error.name, error.message);
-      alert(`Share failed: ${error.message}\n\nUse the download button instead.`);
+      // alert(`Share failed: ${error.message}\n\nUse the download button instead.`);
     }
   }
 }
@@ -1369,7 +1369,7 @@ async function sharePhotosIndividually(photos) {
       // Don't exit bulk mode if user cancelled
     } else {
       console.error('Share error:', error);
-      alert(`Share failed: ${error.message}`);
+      // alert(`Share failed: ${error.message}`);
     }
   }
 }
