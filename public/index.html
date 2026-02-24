@@ -1203,41 +1203,47 @@ async function downloadPhotosIndividually(photos) {
 }
 
 async function sharePhotosIndividually(photos) {
-  for (const photo of photos) {
-    const filename = photo.src.split('/').pop() || 'photo.jpg';
-    
-    if (!navigator.share) {
-      alert('Sharing is not supported on this browser.');
-      return;
-    }
-    
-    try {
+  if (!navigator.share) {
+    alert('Sharing is not supported on this browser.');
+    return;
+  }
+  
+  try {
+    // Fetch all photos and convert to File objects
+    const filePromises = photos.map(async photo => {
+      const filename = photo.src.split('/').pop() || 'photo.jpg';
       const response = await fetch(photo.src);
       const blob = await response.blob();
-      const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ 
-          files: [file],
-          title: 'Photo'
-        });
-        await new Promise(r => setTimeout(r, 500));
-      } else {
-        // Fallback to URL share
+      return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    });
+    
+    const files = await Promise.all(filePromises);
+    
+    // Share all files at once
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ 
+        files,
+        title: photos.length === 1 ? 'Photo' : `${photos.length} Photos`
+      });
+      console.log('Share successful!');
+    } else {
+      // Fallback: If can't share multiple files, share one by one
+      alert(`Your browser doesn't support sharing ${photos.length} files at once. Sharing them one by one...`);
+      for (const photo of photos) {
+        const filename = photo.src.split('/').pop() || 'photo.jpg';
         await navigator.share({
           title: 'Photo',
           url: photo.src
         });
         await new Promise(r => setTimeout(r, 500));
       }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('User cancelled share');
-        return; // Stop if user cancels
-      } else {
-        console.error('Share error:', error);
-        // Continue to next photo on error
-      }
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('User cancelled share');
+    } else {
+      console.error('Share error:', error);
+      alert(`Share failed: ${error.message}`);
     }
   }
 }
