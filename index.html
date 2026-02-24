@@ -1280,7 +1280,8 @@ function openLightbox(idx, photosContext = null) {
     currentLightboxPhotos = PEOPLE[currentPersonName].photos;
   } else {
     // Check if we're in filtered gallery mode
-    const searchValue = document.getElementById('search-input').value.trim().toLowerCase();
+    const searchInput = document.getElementById('search-input');
+    const searchValue = searchInput ? searchInput.value.trim().toLowerCase() : '';
     if (searchValue) {
       currentLightboxPhotos = PHOTOS.filter(p => p.names.some(n => n.toLowerCase().includes(searchValue)));
     } else {
