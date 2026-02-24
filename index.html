@@ -810,7 +810,7 @@ async function init() {
     const names = [...new Set(rawNames.map(n => String(n)).filter(n => n && n.trim() !== '' && n.toLowerCase() !== 'null'))];
     return { 
       idx:index,
-      src: d.SourceFile, 
+      src: d.newSrc, 
       thumb: d.SourceFile.replace('Main Cam', 'Photos_thumbs')
       .replace(/\.(jpg|jpeg|png|heic|heif|tiff|tif|bmp)$/i, '.webp'), // Use thumbnail if available
       names 
