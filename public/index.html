@@ -190,6 +190,9 @@
     aspect-ratio: 1;
     cursor: pointer;
     transition: transform 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .photo-card:hover { transform: scale(1.02); }
@@ -199,6 +202,9 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .photo-card .photo-overlay {
@@ -422,6 +428,27 @@
     gap: 10px;
     margin-bottom: 24px;
     flex-wrap: wrap;
+    transition: all 0.3s ease;
+  }
+
+  .toolbar.sticky {
+    position: fixed;
+    top: 60px; /* Below nav */
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: var(--bg);
+    padding: 12px 32px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  @media (max-width: 600px) {
+    .toolbar.sticky {
+      padding: 10px 12px;
+      top: 60px;
+    }
   }
 
   .btn {
@@ -514,6 +541,25 @@
   }
   .card-download-btn:hover { background: var(--accent); color: #0e0e0e; }
 
+  /* Card share button */
+  .card-share-btn {
+    position: absolute;
+    top: 8px; right: 44px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: background 0.2s;
+    z-index: 3;
+  }
+  .card-share-btn:hover { background: var(--accent); color: #0e0e0e; }
+
   /* Lightbox download - top right corner */
   .lightbox-download-btn {
     position: absolute;
@@ -532,6 +578,25 @@
   }
 
   .lightbox-download-btn:hover { background: var(--accent); border-color: var(--accent); color: #0e0e0e; }
+
+  /* Lightbox share button */
+  .lightbox-share-btn {
+    position: absolute;
+    top: 10px; right: 58px;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.65);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+    z-index: 10;
+  }
+
+  .lightbox-share-btn:hover { background: var(--accent); border-color: var(--accent); color: #0e0e0e; }
 
   /* Lightbox navigation arrows */
   .lightbox-nav {
@@ -702,9 +767,13 @@
     <div class="toolbar" id="gallery-toolbar">
       <button class="btn" onclick="toggleBulkMode()" id="bulk-toggle-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        Select images to download
+        Select images
       </button>
       <span class="bulk-count" id="bulk-count" style="display:none">0 selected</span>
+      <button class="btn btn-accent" id="bulk-share-btn" style="display:none" onclick="shareSelected()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share Selected
+      </button>
       <button class="btn btn-accent" id="bulk-download-btn" style="display:none" onclick="downloadSelected()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download Selected
@@ -770,6 +839,22 @@
           </div>
         </div>
       </div>
+      <div class="toolbar" id="person-toolbar">
+        <button class="btn" onclick="toggleBulkMode()" id="person-bulk-toggle-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Select images
+        </button>
+        <span class="bulk-count" id="person-bulk-count" style="display:none">0 selected</span>
+        <button class="btn btn-accent" id="person-bulk-share-btn" style="display:none" onclick="shareSelected()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share Selected
+        </button>
+        <button class="btn btn-accent" id="person-bulk-download-btn" style="display:none" onclick="downloadSelected()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Selected
+        </button>
+        <button class="btn" id="person-bulk-cancel-btn" style="display:none" onclick="toggleBulkMode()">Cancel</button>
+      </div>
       <div class="photo-grid" id="detail-grid"></div>
       <div style="text-align: center; margin: 32px 0;">
         <button class="btn btn-accent" id="person-load-more-btn" onclick="loadMorePersonPhotos()" style="display:none">
@@ -799,6 +884,9 @@
   </button>
   <div class="lightbox-inner" onclick="event.stopPropagation()">
     <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <button class="lightbox-share-btn" onclick="sharePhoto(currentLightboxIdx)" title="Share">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
     <button class="lightbox-download-btn" onclick="downloadPhoto(currentLightboxIdx)" title="Download">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     </button>
@@ -822,6 +910,7 @@ let displayedPhotoCount = 100; // How many photos currently shown
 let currentFilteredPhotos = []; // Track current photo set for Load More
 let displayedPersonPhotoCount = 100; // How many photos shown in person view
 const preloadedImages = new Set();
+let lightboxHistoryAdded = false; // Track if we added history state for lightbox
 
 const CAROUSEL_WINDOW = 10; // thumbnails on each side of current
 const PHOTOS_PER_CHUNK = 100; // Chunk size for Load More
@@ -861,8 +950,19 @@ function photoCardHTML(photo, globalIdx) {
   // const overlay = `<div class="photo-overlay">${photo.names.length ? `<div class="photo-names">${tags}</div>` : ''}</div>`;
   const overlay = `<div class="photo-overlay"></div>`; // Name tags disabled
   return `
-    <div class="photo-card" id="card-${globalIdx}" onclick="handleCardClick(${globalIdx}, event)">
+    <div class="photo-card" id="card-${globalIdx}" 
+         onclick="handleCardClick(${globalIdx}, event)"
+         oncontextmenu="return false"
+         ontouchstart="handleLongPressStart(${globalIdx}, event)"
+         ontouchend="handleLongPressEnd(event)"
+         ontouchmove="handleLongPressCancel()"
+         onmousedown="handleLongPressStart(${globalIdx}, event)"
+         onmouseup="handleLongPressEnd(event)"
+         onmouseleave="handleLongPressCancel()">
       <div class="photo-check"></div>
+      <button class="card-share-btn" onclick="event.stopPropagation(); sharePhoto(${globalIdx})" title="Share">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
       <button class="card-download-btn" onclick="event.stopPropagation(); downloadPhoto(${globalIdx})" title="Download">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>
@@ -958,19 +1058,131 @@ function loadMorePhotos() {
 }
 
 // ── Bulk select ───────────────────────────────────────
+let longPressTimer = null;
+let longPressTriggered = false;
+
+function handleLongPressStart(idx, e) {
+  // Don't trigger long press on button clicks
+  if (e.target.tagName === 'BUTTON' || e.target.tagName === 'svg' || e.target.tagName === 'path') {
+    return;
+  }
+  
+  longPressTriggered = false;
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    
+    // Enable bulk mode if not already enabled
+    if (!bulkMode) {
+      toggleBulkMode();
+    }
+    
+    // Select this card
+    const card = document.getElementById(`card-${idx}`);
+    if (card && !selectedIndices.has(idx)) {
+      selectedIndices.add(idx);
+      card.classList.add('selected');
+      
+      // Update counts
+      const n = selectedIndices.size;
+      const showButtons = n > 0 ? '' : 'none';
+      
+      // Update gallery page buttons
+      const galleryCount = document.getElementById('bulk-count');
+      const galleryShare = document.getElementById('bulk-share-btn');
+      const galleryDownload = document.getElementById('bulk-download-btn');
+      if (galleryCount) {
+        galleryCount.textContent = `${n} selected`;
+        galleryShare.style.display = showButtons;
+        galleryDownload.style.display = showButtons;
+      }
+      
+      // Update person page buttons
+      const personCount = document.getElementById('person-bulk-count');
+      const personShare = document.getElementById('person-bulk-share-btn');
+      const personDownload = document.getElementById('person-bulk-download-btn');
+      if (personCount) {
+        personCount.textContent = `${n} selected`;
+        personShare.style.display = showButtons;
+        personDownload.style.display = showButtons;
+      }
+    }
+    
+    // Haptic feedback on mobile
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+  }, 500); // 500ms for long press
+}
+
+function handleLongPressEnd(e) {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+}
+
+function handleLongPressCancel() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  longPressTriggered = false;
+}
+
 function toggleBulkMode() {
   bulkMode = !bulkMode;
   selectedIndices.clear();
-  document.getElementById('photo-grid').classList.toggle('bulk-mode', bulkMode);
-  document.getElementById('bulk-toggle-btn').style.display   = bulkMode ? 'none' : '';
-  document.getElementById('bulk-cancel-btn').style.display   = bulkMode ? '' : 'none';
-  document.getElementById('bulk-download-btn').style.display = 'none';
-  document.getElementById('bulk-count').style.display        = bulkMode ? '' : 'none';
-  document.getElementById('bulk-count').textContent          = '0 selected';
+  
+  // Toggle bulk mode for all grids
+  document.getElementById('photo-grid')?.classList.toggle('bulk-mode', bulkMode);
+  document.getElementById('detail-grid')?.classList.toggle('bulk-mode', bulkMode);
+  
+  // Gallery page buttons
+  const galleryToolbar = document.getElementById('gallery-toolbar');
+  const galleryToggle = document.getElementById('bulk-toggle-btn');
+  const galleryCancel = document.getElementById('bulk-cancel-btn');
+  const galleryShare = document.getElementById('bulk-share-btn');
+  const galleryDownload = document.getElementById('bulk-download-btn');
+  const galleryCount = document.getElementById('bulk-count');
+  
+  if (galleryToggle) {
+    galleryToggle.style.display = bulkMode ? 'none' : '';
+    galleryCancel.style.display = bulkMode ? '' : 'none';
+    galleryShare.style.display = 'none';
+    galleryDownload.style.display = 'none';
+    galleryCount.style.display = bulkMode ? '' : 'none';
+    galleryCount.textContent = '0 selected';
+    galleryToolbar.classList.toggle('sticky', bulkMode);
+  }
+  
+  // Person page buttons
+  const personToolbar = document.getElementById('person-toolbar');
+  const personToggle = document.getElementById('person-bulk-toggle-btn');
+  const personCancel = document.getElementById('person-bulk-cancel-btn');
+  const personShare = document.getElementById('person-bulk-share-btn');
+  const personDownload = document.getElementById('person-bulk-download-btn');
+  const personCount = document.getElementById('person-bulk-count');
+  
+  if (personToggle) {
+    personToggle.style.display = bulkMode ? 'none' : '';
+    personCancel.style.display = bulkMode ? '' : 'none';
+    personShare.style.display = 'none';
+    personDownload.style.display = 'none';
+    personCount.style.display = bulkMode ? '' : 'none';
+    personCount.textContent = '0 selected';
+    personToolbar.classList.toggle('sticky', bulkMode);
+  }
+  
   document.querySelectorAll('.photo-card.selected').forEach(c => c.classList.remove('selected'));
 }
 
 function handleCardClick(idx, e) {
+  // Prevent opening lightbox if long press was triggered
+  if (longPressTriggered) {
+    longPressTriggered = false;
+    return;
+  }
+  
   if (bulkMode) {
     const card = document.getElementById(`card-${idx}`);
     if (selectedIndices.has(idx)) {
@@ -981,34 +1193,193 @@ function handleCardClick(idx, e) {
       card.classList.add('selected');
     }
     const n = selectedIndices.size;
-    document.getElementById('bulk-count').textContent = `${n} selected`;
-    document.getElementById('bulk-download-btn').style.display = n > 0 ? '' : 'none';
+    const showButtons = n > 0 ? '' : 'none';
+    
+    // Update gallery page buttons
+    const galleryCount = document.getElementById('bulk-count');
+    const galleryShare = document.getElementById('bulk-share-btn');
+    const galleryDownload = document.getElementById('bulk-download-btn');
+    if (galleryCount) {
+      galleryCount.textContent = `${n} selected`;
+      galleryShare.style.display = showButtons;
+      galleryDownload.style.display = showButtons;
+    }
+    
+    // Update person page buttons
+    const personCount = document.getElementById('person-bulk-count');
+    const personShare = document.getElementById('person-bulk-share-btn');
+    const personDownload = document.getElementById('person-bulk-download-btn');
+    if (personCount) {
+      personCount.textContent = `${n} selected`;
+      personShare.style.display = showButtons;
+      personDownload.style.display = showButtons;
+    }
   } else {
     openLightbox(idx);
   }
 }
 
-// ── Downloads ─────────────────────────────────────────
-function downloadPhoto(idx) {
+// ── Share ─────────────────────────────────────────────
+async function sharePhoto(idx) {
   const photo = PHOTOS[idx];
-  const a = document.createElement('a');
-  a.href = photo.src;
-  a.download = photo.src.split('/').pop() || 'photo.jpg';
-  a.click();
+  const filename = photo.src.split('/').pop() || 'photo.jpg';
+  
+  console.log('Share button clicked. navigator.share available:', !!navigator.share);
+  console.log('navigator.canShare available:', !!navigator.canShare);
+  
+  // Check if Web Share API is available
+  if (!navigator.share) {
+    alert('Sharing is not supported on this browser. Use the download button instead.');
+    return;
+  }
+  
+  try {
+    const response = await fetch(photo.src);
+    const blob = await response.blob();
+    console.log('Fetched blob:', blob.type, blob.size, 'bytes');
+    
+    const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    console.log('Created file:', file.name, file.type, file.size, 'bytes');
+    
+    // Check if we can share files
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      console.log('Can share files: YES');
+      await navigator.share({ 
+        files: [file],
+        title: 'Photo',
+        text: ''
+      });
+      console.log('Share successful!');
+    } else {
+      console.log('Cannot share files. Trying URL share...');
+      // Fallback: share URL instead of file
+      await navigator.share({
+        title: 'Photo',
+        text: '',
+        url: photo.src
+      });
+      console.log('URL share successful!');
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('User cancelled share');
+    } else {
+      console.error('Share error:', error.name, error.message);
+      alert(`Share failed: ${error.message}\n\nUse the download button instead.`);
+    }
+  }
+}
+
+// ── Downloads ─────────────────────────────────────────
+async function downloadPhoto(idx) {
+  const photo = PHOTOS[idx];
+  const filename = photo.src.split('/').pop() || 'photo.jpg';
+  
+  // Direct download using blob
+  try {
+    const response = await fetch(photo.src);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    // Fallback: open in new tab (user can long-press to save)
+    window.open(photo.src, '_blank');
+  }
 }
 
 async function downloadPhotosIndividually(photos) {
   for (const photo of photos) {
-    const a = document.createElement('a');
-    a.href = photo.src;
-    a.download = photo.src.split('/').pop() || 'photo.jpg';
-    a.click();
-    await new Promise(r => setTimeout(r, 300));
+    const filename = photo.src.split('/').pop() || 'photo.jpg';
+    
+    // Direct download
+    try {
+      const response = await fetch(photo.src);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      await new Promise(r => setTimeout(r, 300));
+    } catch (error) {
+      // Open in new tab as fallback
+      window.open(photo.src, '_blank');
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+  
+  // Exit bulk mode after download completes
+  if (bulkMode) toggleBulkMode();
+}
+
+async function sharePhotosIndividually(photos) {
+  if (!navigator.share) {
+    alert('Sharing is not supported on this browser.');
+    return;
+  }
+  
+  try {
+    // Fetch all photos and convert to File objects
+    const filePromises = photos.map(async photo => {
+      const filename = photo.src.split('/').pop() || 'photo.jpg';
+      const response = await fetch(photo.src);
+      const blob = await response.blob();
+      return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    });
+    
+    const files = await Promise.all(filePromises);
+    
+    // Share all files at once
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ 
+        files,
+        title: photos.length === 1 ? 'Photo' : `${photos.length} Photos`
+      });
+      console.log('Share successful!');
+      
+      // Exit bulk mode after successful share
+      if (bulkMode) toggleBulkMode();
+    } else {
+      // Fallback: If can't share multiple files, share one by one
+      alert(`Your browser doesn't support sharing ${photos.length} files at once. Sharing them one by one...`);
+      for (const photo of photos) {
+        const filename = photo.src.split('/').pop() || 'photo.jpg';
+        await navigator.share({
+          title: 'Photo',
+          url: photo.src
+        });
+        await new Promise(r => setTimeout(r, 500));
+      }
+      
+      // Exit bulk mode after fallback share
+      if (bulkMode) toggleBulkMode();
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('User cancelled share');
+      // Don't exit bulk mode if user cancelled
+    } else {
+      console.error('Share error:', error);
+      alert(`Share failed: ${error.message}`);
+    }
   }
 }
 
 function downloadSelected() {
   downloadPhotosIndividually([...selectedIndices].map(i => PHOTOS[i]));
+}
+
+function shareSelected() {
+  sharePhotosIndividually([...selectedIndices].map(i => PHOTOS[i]));
 }
 
 function downloadPersonPhotos() {
@@ -1295,6 +1666,10 @@ function openLightbox(idx, photosContext = null) {
   updateLightboxContent();
   document.getElementById('lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
+  
+  // Push state for back button support on mobile
+  window.history.pushState({ lightboxOpen: true }, '');
+  lightboxHistoryAdded = true;
 }
 
 function buildCarousel() {
@@ -1359,11 +1734,17 @@ function jumpToPhoto(idx, pos) {
   updateLightboxContent();
 }
 
-function closeLightbox(e) {
+function closeLightbox(e, fromPopstate = false) {
   if (e && e.target !== document.getElementById('lightbox') &&
       !e.target.classList.contains('lightbox-close')) return;
   document.getElementById('lightbox').classList.remove('open');
   document.body.style.overflow = '';
+  
+  // If closing via UI and we added history, go back
+  if (!fromPopstate && lightboxHistoryAdded) {
+    lightboxHistoryAdded = false;
+    window.history.back();
+  }
 }
 
 document.addEventListener('keydown', e => {
@@ -1414,6 +1795,12 @@ function restorePageState() {
       personData = { photos: allPhotos };
     }
     
+    // Ensure we're on people page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-people').classList.add('active');
+    document.querySelectorAll('.nav-tab')[0].classList.add('active');
+    
     document.getElementById('people-list-view').style.display = 'none';
     document.getElementById('people-detail-view').classList.add('active');
     document.getElementById('detail-name').textContent  = displayName;
@@ -1433,13 +1820,41 @@ function restorePageState() {
     loadMoreBtn.style.display = displayedPersonPhotoCount < personData.photos.length ? '' : 'none';
     
     // preloadChunk(photosToShow); // Preload disabled to save bandwidth
+  } else {
+    // Default: People list page
+    // Ensure we're on people page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-people').classList.add('active');
+    document.querySelectorAll('.nav-tab')[0].classList.add('active');
+    
+    // Close person detail if it's open
+    if (currentPersonName) {
+      currentPersonName = null;
+      displayedPersonPhotoCount = PHOTOS_PER_CHUNK;
+      document.getElementById('people-list-view').style.display = 'block';
+      document.getElementById('people-detail-view').classList.remove('active');
+      
+      // Clear people search
+      const peopleSearchInput = document.getElementById('people-search-input');
+      if (peopleSearchInput) {
+        peopleSearchInput.value = '';
+        renderPeople();
+      }
+    }
   }
-  // else: Default is people list page (already active)
 }
 
 // Handle browser back/forward buttons
 window.addEventListener('popstate', () => {
-  restorePageState();
+  const lightbox = document.getElementById('lightbox');
+  if (lightbox.classList.contains('open')) {
+    // Close lightbox when back button is pressed
+    lightboxHistoryAdded = false;
+    closeLightbox(null, true);
+  } else {
+    restorePageState();
+  }
 });
 
 init();
