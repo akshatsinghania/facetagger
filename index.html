@@ -152,9 +152,17 @@
   }
 
   @media (max-width: 600px) {
+    main {
+      padding: 20px 12px;
+    }
+    
     .photo-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: 6px;
+    }
+    
+    .search-wrap {
+      margin-bottom: 20px;
     }
   }
 
@@ -738,6 +746,14 @@
         </div>
       </div>
       <div class="photo-grid" id="detail-grid"></div>
+      <div style="text-align: center; margin: 32px 0;">
+        <button class="btn btn-accent" id="person-load-more-btn" onclick="loadMorePersonPhotos()" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+          Load More Photos
+        </button>
+      </div>
     </div>
 
   </div>
@@ -779,6 +795,7 @@ let currentLightboxPhotos = [];
 let currentContextPosition = -1;
 let displayedPhotoCount = 100; // How many photos currently shown
 let currentFilteredPhotos = []; // Track current photo set for Load More
+let displayedPersonPhotoCount = 100; // How many photos shown in person view
 const preloadedImages = new Set();
 
 const CAROUSEL_WINDOW = 10; // thumbnails on each side of current
@@ -1006,15 +1023,27 @@ function renderPeople() {
 
 function openPerson(name) {
   currentPersonName = name;
+  displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
   const person = PEOPLE[name];
   document.getElementById('people-list-view').style.display = 'none';
   document.getElementById('people-detail-view').classList.add('active');
   document.getElementById('detail-name').textContent  = name;
-  document.getElementById('detail-count').textContent = `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`;
-  document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${name.charAt(0)}</div>`;
-  document.getElementById('detail-grid').innerHTML    = person.photos.map(p => photoCardHTML(p, p.idx)).join('');
   
-  preloadChunk(person.photos); // Preload person's photos
+  const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
+  document.getElementById('detail-count').textContent = showing < person.photos.length 
+    ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
+    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`;
+  
+  document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${name.charAt(0)}</div>`;
+  
+  const photosToShow = person.photos.slice(0, displayedPersonPhotoCount);
+  document.getElementById('detail-grid').innerHTML    = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
+  
+  // Show/hide Load More button
+  const loadMoreBtn = document.getElementById('person-load-more-btn');
+  loadMoreBtn.style.display = displayedPersonPhotoCount < person.photos.length ? '' : 'none';
+  
+  preloadChunk(photosToShow); // Preload person's photos
   
   // Update URL
   const url = new URL(window.location);
@@ -1023,8 +1052,37 @@ function openPerson(name) {
   window.history.pushState({}, '', url);
 }
 
+function loadMorePersonPhotos() {
+  if (!currentPersonName) return;
+  
+  const person = PEOPLE[currentPersonName];
+  const start = displayedPersonPhotoCount;
+  displayedPersonPhotoCount += PHOTOS_PER_CHUNK;
+  const newChunk = person.photos.slice(start, displayedPersonPhotoCount);
+  
+  const grid = document.getElementById('detail-grid');
+  grid.insertAdjacentHTML('beforeend', newChunk.map(p => photoCardHTML(p, p.idx)).join(''));
+  
+  preloadChunk(newChunk);
+  
+  // Update count and button visibility
+  const loadMoreBtn = document.getElementById('person-load-more-btn');
+  loadMoreBtn.style.display = displayedPersonPhotoCount < person.photos.length ? '' : 'none';
+  
+  const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
+  document.getElementById('detail-count').textContent = showing < person.photos.length 
+    ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
+    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`;
+  
+  // Scroll to first new card
+  const firstNew = person.photos[start];
+  if (firstNew) document.getElementById(`card-${firstNew.idx}`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function closePerson() {
   currentPersonName = null;
+  displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset for next person
   document.getElementById('people-list-view').style.display = 'block';
   document.getElementById('people-detail-view').classList.remove('active');
   
@@ -1042,6 +1100,17 @@ function showPage(id) {
   event.target.classList.add('active');
   if (id !== 'people') closePerson();
   if (bulkMode) toggleBulkMode();
+  
+  // Reset gallery pagination when switching to gallery
+  if (id === 'gallery') {
+    displayedPhotoCount = PHOTOS_PER_CHUNK;
+    const searchValue = document.getElementById('search-input').value.trim();
+    if (searchValue) {
+      filterGallery(searchValue);
+    } else {
+      renderGallery(PHOTOS);
+    }
+  }
   
   // Update URL
   const url = new URL(window.location);
@@ -1179,13 +1248,27 @@ function restorePageState() {
     // Open specific person if specified (without updating URL)
     if (person && PEOPLE[person]) {
       currentPersonName = person;
+      displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
       const personData = PEOPLE[person];
       document.getElementById('people-list-view').style.display = 'none';
       document.getElementById('people-detail-view').classList.add('active');
       document.getElementById('detail-name').textContent  = person;
-      document.getElementById('detail-count').textContent = `${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}`;
+      
+      const showing = Math.min(displayedPersonPhotoCount, personData.photos.length);
+      document.getElementById('detail-count').textContent = showing < personData.photos.length 
+        ? `Showing ${showing} of ${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}` 
+        : `${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}`;
+      
       document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${person.charAt(0)}</div>`;
-      document.getElementById('detail-grid').innerHTML    = personData.photos.map(p => photoCardHTML(p, p.idx)).join('');
+      
+      const photosToShow = personData.photos.slice(0, displayedPersonPhotoCount);
+      document.getElementById('detail-grid').innerHTML = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
+      
+      // Show/hide Load More button
+      const loadMoreBtn = document.getElementById('person-load-more-btn');
+      loadMoreBtn.style.display = displayedPersonPhotoCount < personData.photos.length ? '' : 'none';
+      
+      preloadChunk(photosToShow);
     }
   } else if (searchName) {
     // Handle gallery search
