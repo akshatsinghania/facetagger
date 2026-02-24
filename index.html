@@ -1059,7 +1059,7 @@ function openPerson(name) {
     // Merge both people's photos
     allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
     displayName = 'Binod Dadu & Shivu Dadu';
-    funnyNote = '<div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+    funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
     // Update person object to use merged photos
     person = { photos: allPhotos };
   }
@@ -1117,7 +1117,7 @@ function loadMorePersonPhotos() {
   const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
   let funnyNote = '';
   if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
-    funnyNote = '<div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+    funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
   }
   document.getElementById('detail-count').innerHTML = (showing < person.photos.length 
     ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
@@ -1310,7 +1310,7 @@ function restorePageState() {
         // Merge both people's photos
         allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
         displayName = 'Binod Dadu & Shivu Dadu';
-        funnyNote = '<div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+        funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
         // Update person object to use merged photos
         personData = { photos: allPhotos };
       }
