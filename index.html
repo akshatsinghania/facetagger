@@ -1014,18 +1014,20 @@ function renderPeople() {
   grid.innerHTML = filteredList.map((name, i) => {
     const person = PEOPLE[name];
     let photoCount = person.photos.length;
+    let displayName = name;
     
-    // If this is Binod Singhania, add Shiv Kumar's photos to the count
+    // If this is Binod Singhania, add Shiv Kumar's photos to the count and change display name
     if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
       photoCount += PEOPLE['Shiv Kumar Agarwal'].photos.length;
+      displayName = 'Binod Dadu & Shivu Dadu';
     }
 
     return `
       <div class="person-card" "
            onclick="openPerson('${name.replace(/'/g, "\\'")}')">
-        <div class="person-avatar-placeholder">${name.charAt(0)}</div>
+        <div class="person-avatar-placeholder">${displayName.charAt(0)}</div>
         <div class="person-info">
-          <div class="person-name">${name}</div>
+          <div class="person-name">${displayName}</div>
           <div class="person-count">${photoCount} photo${photoCount !== 1 ? 's' : ''}</div>
         </div>
       </div>`;
@@ -1297,17 +1299,32 @@ function restorePageState() {
     if (person && PEOPLE[person]) {
       currentPersonName = person;
       displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
-      const personData = PEOPLE[person];
+      
+      // Special case: Merge Binod and Shiv Kumar's photos
+      let personData = PEOPLE[person];
+      let allPhotos = [...personData.photos];
+      let displayName = person;
+      let funnyNote = '';
+      
+      if ((person === 'Binod Singhania' || person === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+        // Merge both people's photos
+        allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+        displayName = 'Binod Dadu & Shivu Dadu';
+        funnyNote = '<div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+        // Update person object to use merged photos
+        personData = { photos: allPhotos };
+      }
+      
       document.getElementById('people-list-view').style.display = 'none';
       document.getElementById('people-detail-view').classList.add('active');
-      document.getElementById('detail-name').textContent  = person;
+      document.getElementById('detail-name').textContent  = displayName;
       
       const showing = Math.min(displayedPersonPhotoCount, personData.photos.length);
-      document.getElementById('detail-count').textContent = showing < personData.photos.length 
+      document.getElementById('detail-count').innerHTML = (showing < personData.photos.length 
         ? `Showing ${showing} of ${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}` 
-        : `${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}`;
+        : `${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}`) + funnyNote;
       
-      document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${person.charAt(0)}</div>`;
+      document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${displayName.charAt(0)}</div>`;
       
       const photosToShow = personData.photos.slice(0, displayedPersonPhotoCount);
       document.getElementById('detail-grid').innerHTML = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
@@ -1317,6 +1334,11 @@ function restorePageState() {
       loadMoreBtn.style.display = displayedPersonPhotoCount < personData.photos.length ? '' : 'none';
       
       preloadChunk(photosToShow);
+    } else {
+      // No specific person selected, show the people list
+      currentPersonName = null;
+      document.getElementById('people-list-view').style.display = 'block';
+      document.getElementById('people-detail-view').classList.remove('active');
     }
   } else if (searchName) {
     // Handle gallery search
