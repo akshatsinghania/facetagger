@@ -987,16 +987,33 @@ function downloadSelected() {
 
 function downloadPersonPhotos() {
   if (!currentPersonName) return;
-  downloadPhotosIndividually(PEOPLE[currentPersonName].photos);
+  
+  // Get merged photos if viewing Binod or Shiv Kumar
+  let photos = PEOPLE[currentPersonName].photos;
+  if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    photos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+  }
+  
+  downloadPhotosIndividually(photos);
 }
 
 // ── People ────────────────────────────────────────────
 function renderPeople() {
   const grid  = document.getElementById('people-grid');
   const count = document.getElementById('people-count');
-  count.textContent = `${PEOPLE_LIST.length} people`;
-  grid.innerHTML = PEOPLE_LIST.map((name, i) => {
+  
+  // Special case: Merge Binod Singhania and Shiv Kumar Agarwal
+  const filteredList = PEOPLE_LIST.filter(name => name !== 'Shiv Kumar Agarwal');
+  
+  count.textContent = `${filteredList.length} people`;
+  grid.innerHTML = filteredList.map((name, i) => {
     const person = PEOPLE[name];
+    let photoCount = person.photos.length;
+    
+    // If this is Binod Singhania, add Shiv Kumar's photos to the count
+    if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
+      photoCount += PEOPLE['Shiv Kumar Agarwal'].photos.length;
+    }
 
     return `
       <div class="person-card" "
@@ -1004,7 +1021,7 @@ function renderPeople() {
         <div class="person-avatar-placeholder">${name.charAt(0)}</div>
         <div class="person-info">
           <div class="person-name">${name}</div>
-          <div class="person-count">${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}</div>
+          <div class="person-count">${photoCount} photo${photoCount !== 1 ? 's' : ''}</div>
         </div>
       </div>`;
   }).join('');
@@ -1024,17 +1041,32 @@ function renderPeople() {
 function openPerson(name) {
   currentPersonName = name;
   displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
-  const person = PEOPLE[name];
+  
+  // Special case: Merge Binod and Shiv Kumar's photos
+  let person = PEOPLE[name];
+  let allPhotos = [...person.photos];
+  let displayName = name;
+  let funnyNote = '';
+  
+  if ((name === 'Binod Singhania' || name === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    // Merge both people's photos
+    allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+    displayName = 'Binod Dadu & Shivu Dadu';
+    funnyNote = '<div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+    // Update person object to use merged photos
+    person = { photos: allPhotos };
+  }
+  
   document.getElementById('people-list-view').style.display = 'none';
   document.getElementById('people-detail-view').classList.add('active');
-  document.getElementById('detail-name').textContent  = name;
+  document.getElementById('detail-name').textContent  = displayName;
   
   const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
-  document.getElementById('detail-count').textContent = showing < person.photos.length 
+  document.getElementById('detail-count').innerHTML = (showing < person.photos.length 
     ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
-    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`;
+    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`) + funnyNote;
   
-  document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${name.charAt(0)}</div>`;
+  document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${displayName.charAt(0)}</div>`;
   
   const photosToShow = person.photos.slice(0, displayedPersonPhotoCount);
   document.getElementById('detail-grid').innerHTML    = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
@@ -1055,7 +1087,13 @@ function openPerson(name) {
 function loadMorePersonPhotos() {
   if (!currentPersonName) return;
   
-  const person = PEOPLE[currentPersonName];
+  // Get merged photos if viewing Binod or Shiv Kumar
+  let person = PEOPLE[currentPersonName];
+  if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    const allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+    person = { photos: allPhotos };
+  }
+  
   const start = displayedPersonPhotoCount;
   displayedPersonPhotoCount += PHOTOS_PER_CHUNK;
   const newChunk = person.photos.slice(start, displayedPersonPhotoCount);
@@ -1070,9 +1108,13 @@ function loadMorePersonPhotos() {
   loadMoreBtn.style.display = displayedPersonPhotoCount < person.photos.length ? '' : 'none';
   
   const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
-  document.getElementById('detail-count').textContent = showing < person.photos.length 
+  let funnyNote = '';
+  if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    funnyNote = '<div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-top: 8px; color: var(--muted); font-size: 13px; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+  }
+  document.getElementById('detail-count').innerHTML = (showing < person.photos.length 
     ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
-    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`;
+    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`) + funnyNote;
   
   // Scroll to first new card
   const firstNew = person.photos[start];
