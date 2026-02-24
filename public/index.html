@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Gallery</title>
+<link rel="preload" href="photos.json" as="fetch" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --text: #f0ece4;
+    --muted: #7a7570;
+    --accent: #c8a96e;
+    --accent2: #e8d5b0;
+    --radius: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(14,14,14,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 4px;
+  }
+
+  .nav-tab {
+    padding: 7px 20px;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .nav-tab.active {
+    background: var(--accent);
+    color: #0e0e0e;
+  }
+
+  .nav-tab:hover:not(.active) {
+    color: var(--text);
+  }
+
+  /* ── Credit line ── */
+  .credit-line {
+    text-align: right;
+    padding: 8px 32px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 400;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Main container ── */
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 36px 32px;
+  }
+
+  /* ── Page sections ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Search bar ── */
+  .search-wrap {
+    margin-bottom: 32px;
+    position: relative;
+    max-width: 480px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 13px 16px 13px 46px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .section-count {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── Photo grid ── */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) {
+    main {
+      padding: 20px 12px;
+    }
+    
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 6px;
+    }
+    
+    .people-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 12px;
+    }
+    
+    .search-wrap {
+      margin-bottom: 20px;
+    }
+  }
+
+  .photo-card {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface);
+    aspect-ratio: 1;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .photo-card:hover { transform: scale(1.02); }
+
+  .photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .photo-card .photo-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    padding: 24px 10px 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .photo-card:hover .photo-overlay { opacity: 1; }
+
+  .photo-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .name-tag {
+    background: var(--accent);
+    color: #0e0e0e;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── No results ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+
+  .empty-state svg { margin-bottom: 16px; opacity: 0.4; }
+  .empty-state p { font-size: 16px; }
+
+  /* ── People page ── */
+  .people-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+
+  .person-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .person-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .person-avatar {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+    background: var(--surface2);
+  }
+
+  .person-avatar-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 40px;
+    color: var(--accent);
+  }
+
+  .person-info {
+    padding: 12px 14px;
+  }
+
+  .person-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .person-count {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Person detail view ── */
+  .person-detail { display: none; }
+  .person-detail.active { display: block; }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 28px;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .back-btn:hover { color: var(--accent); }
+
+  .person-hero {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .person-hero-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+    background: var(--surface2);
+  }
+
+  .person-hero-placeholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .person-hero-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+  }
+
+  .person-hero-count {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  /* ── Lightbox ── */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .lightbox.open { display: flex; }
+
+  .lightbox-inner {
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+  }
+
+  .lightbox-img {
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: var(--radius);
+    display: block;
+    transition: opacity 0.2s;
+  }
+
+  .lightbox-img.loading {
+    opacity: 0;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .lightbox-close:hover { color: var(--text); }
+
+  .lightbox-names {
+    margin-top: 12px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ── Download / Bulk select ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #0e0e0e;
+    border-color: var(--accent);
+  }
+
+  .btn-accent:hover { background: var(--accent2); border-color: var(--accent2); color: #0e0e0e; }
+
+  .btn-sm {
+    padding: 5px 11px;
+    font-size: 12px;
+  }
+
+  /* Bulk mode: checkbox overlay on cards */
+  .bulk-mode .photo-card .photo-overlay { opacity: 1 !important; }
+
+  .photo-check {
+    display: none;
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: rgba(0,0,0,0.4);
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: all 0.15s;
+  }
+
+  .bulk-mode .photo-check { display: flex; }
+
+  .photo-card.selected .photo-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .photo-card.selected .photo-check::after {
+    content: '';
+    width: 6px; height: 10px;
+    border: 2px solid #0e0e0e;
+    border-top: none; border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+  }
+
+  .photo-card.selected { outline: 2px solid var(--accent); }
+
+  .bulk-count {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Card download button */
+  .card-download-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: background 0.2s;
+    z-index: 3;
+  }
+  .card-download-btn:hover { background: var(--accent); color: #0e0e0e; }
+
+  /* Lightbox download - top right corner */
+  .lightbox-download-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.65);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+    z-index: 10;
+  }
+
+  .lightbox-download-btn:hover { background: var(--accent); border-color: var(--accent); color: #0e0e0e; }
+
+  /* Lightbox navigation arrows */
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.65);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+    z-index: 10;
+  }
+
+  .lightbox-nav:hover { background: var(--accent); border-color: var(--accent); color: #0e0e0e; }
+  .lightbox-nav.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+  .lightbox-nav-prev { left: 20px; }
+  .lightbox-nav-next { right: 20px; }
+
+  /* Lightbox carousel */
+  .lightbox-carousel {
+    margin-top: 20px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) rgba(0,0,0,0.3);
+  }
+
+  .lightbox-carousel::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .lightbox-carousel::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.3);
+    border-radius: 3px;
+  }
+
+  .lightbox-carousel::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+  }
+
+  .carousel-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .carousel-thumb:hover {
+    border-color: var(--accent2);
+    transform: scale(1.05);
+  }
+
+  .carousel-thumb.active {
+    border-color: var(--accent);
+    opacity: 1;
+  }
+
+  .carousel-thumb:not(.active) {
+    opacity: 0.6;
+  }
+
+  /* Responsive adjustments for landscape mode on small devices */
+  /* @media (max-width: 900px) and (orientation: landscape) {
+    .lightbox {
+      padding: 10px;
+    }
+    
+    .lightbox-inner {
+      max-height: 95vh;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .lightbox-img {
+      max-height: 50vh;
+      flex-shrink: 0;
+    }
+    
+    .lightbox-carousel {
+      margin-top: 12px;
+      padding: 8px 0;
+      flex-shrink: 0;
+    }
+    
+    .carousel-thumb {
+      width: 60px;
+      height: 60px;
+    }
+    
+    .lightbox-nav {
+      width: 38px;
+      height: 38px;
+    }
+    
+    .lightbox-nav-prev { left: 10px; }
+    .lightbox-nav-next { right: 10px; }
+    
+    .lightbox-close {
+      top: 5px;
+      right: 5px;
+      position: fixed;
+    }
+    
+    .lightbox-download-btn {
+      top: 5px;
+      right: 45px;
+    }
+  } */
+
+  /* Person page download all */
+  .person-hero-actions {
+    margin-top: 10px;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .photo-card, .person-card {
+    animation: fadeUp 0.3s ease both;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('people')">Find your photos by name</button>
+    <button class="nav-tab" onclick="showPage('gallery')">All Photos</button>
+  </div>
+</nav>
+
+<div class="credit-line">App made by Akshat and Unnati</div>
+
+<main>
+
+  <!-- ── Gallery Page ── -->
+  <div id="page-gallery" class="page">
+    <!-- <div class="search-wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input class="search-input" id="search-input" type="text"
+             placeholder="Search by person's name…"
+             oninput="debouncedFilter(this.value)">
+    </div> -->
+
+    <div class="section-header">
+      <span class="section-title">All Photos</span>
+      <span class="section-count" id="gallery-count"></span>
+    </div>
+
+    <div class="toolbar" id="gallery-toolbar">
+      <button class="btn" onclick="toggleBulkMode()" id="bulk-toggle-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Select images to download
+      </button>
+      <span class="bulk-count" id="bulk-count" style="display:none">0 selected</span>
+      <button class="btn btn-accent" id="bulk-download-btn" style="display:none" onclick="downloadSelected()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Selected
+      </button>
+      <button class="btn" id="bulk-cancel-btn" style="display:none" onclick="toggleBulkMode()">Cancel</button>
+    </div>
+
+    <div class="photo-grid" id="photo-grid"></div>
+    <div class="empty-state" id="gallery-empty" style="display:none">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <p>No photos found for that name.</p>
+    </div>
+    <div style="text-align: center; margin: 32px 0;">
+      <button class="btn btn-accent" id="load-more-btn" onclick="loadMorePhotos()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+        Load More Photos
+      </button>
+    </div>
+  </div>
+
+  <!-- ── People Page ── -->
+  <div id="page-people" class="page active">
+
+    <!-- People list -->
+    <div id="people-list-view">
+      <div class="search-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input class="search-input" id="people-search-input" type="text"
+               placeholder="Search by person's name…"
+               oninput="debouncedFilterPeople(this.value)">
+      </div>
+      <div class="section-header">
+        <span class="section-title">People</span>
+        <span class="section-count" id="people-count"></span>
+      </div>
+      <div class="people-grid" id="people-grid"></div>
+    </div>
+
+    <!-- Person detail -->
+    <div id="people-detail-view" class="person-detail">
+      <button class="back-btn" onclick="closePerson()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        All People
+      </button>
+      <div class="person-hero">
+        <div id="detail-avatar"></div>
+        <div>
+          <div class="person-hero-name" id="detail-name"></div>
+          <div class="person-hero-count" id="detail-count"></div>
+          <div class="person-hero-actions" style="margin-top:10px">
+            <button class="btn btn-accent btn-sm" onclick="downloadPersonPhotos()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download All Photos
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="photo-grid" id="detail-grid"></div>
+      <div style="text-align: center; margin: 32px 0;">
+        <button class="btn btn-accent" id="person-load-more-btn" onclick="loadMorePersonPhotos()" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+          Load More Photos
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-nav lightbox-nav-prev" id="lightbox-prev" onclick="event.stopPropagation(); navigateLightbox(-1)" title="Previous">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </button>
+  <button class="lightbox-nav lightbox-nav-next" id="lightbox-next" onclick="event.stopPropagation(); navigateLightbox(1)" title="Next">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </button>
+  <div class="lightbox-inner" onclick="event.stopPropagation()">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <button class="lightbox-download-btn" onclick="downloadPhoto(currentLightboxIdx)" title="Download">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="">
+    <div class="lightbox-names" id="lightbox-names"></div>
+    <div class="lightbox-carousel" id="lightbox-carousel"></div>
+  </div>
+</div>
+
+<script>
+let PHOTOS = [];
+let PEOPLE = {};
+let PEOPLE_LIST = [];
+let currentPersonName = null;
+let bulkMode = false;
+let selectedIndices = new Set();
+let currentLightboxIdx = -1;
+let currentLightboxPhotos = [];
+let currentContextPosition = -1;
+let displayedPhotoCount = 100; // How many photos currently shown
+let currentFilteredPhotos = []; // Track current photo set for Load More
+let displayedPersonPhotoCount = 100; // How many photos shown in person view
+const preloadedImages = new Set();
+
+const CAROUSEL_WINDOW = 10; // thumbnails on each side of current
+const PHOTOS_PER_CHUNK = 100; // Chunk size for Load More
+
+async function init() {
+  const data = await fetch('photos.json').then(r => r.json());
+
+  PHOTOS = data.map((d,index) => {
+    const rawNames = [].concat(d.PersonInImage || []);
+    // const names = rawNames.filter(n => n && n.trim() !== '' && n.toLowerCase() !== 'null');
+    const names = [...new Set(rawNames.map(n => String(n)).filter(n => n && n.trim() !== '' && n.toLowerCase() !== 'null' && n.toLowerCase() !== 'check'))];
+    return { 
+      idx:index,
+      src: d.newSrc, 
+      thumb: d.SourceFile.replace('Main Cam', 'Photos_thumbs')
+      .replace(/\.(jpg|jpeg|png|heic|heif|tiff|tif|bmp)$/i, '.webp'), // Use thumbnail if available
+      names 
+    };
+  });
+
+  PHOTOS.forEach(photo => {
+    photo.names.forEach(name => {
+      if (!PEOPLE[name]) PEOPLE[name] = { photos: [] };
+      PEOPLE[name].photos.push(photo);
+    });
+  });
+  PEOPLE_LIST = Object.keys(PEOPLE).sort();
+
+  renderGallery(PHOTOS);
+  renderPeople();
+  restorePageState();
+}
+
+// ── Photo card ────────────────────────────────────────
+function photoCardHTML(photo, globalIdx) {
+  // const tags = photo.names.map(n => `<span class="name-tag">${n}</span>`).join('');
+  // const overlay = `<div class="photo-overlay">${photo.names.length ? `<div class="photo-names">${tags}</div>` : ''}</div>`;
+  const overlay = `<div class="photo-overlay"></div>`; // Name tags disabled
+  return `
+    <div class="photo-card" id="card-${globalIdx}" onclick="handleCardClick(${globalIdx}, event)">
+      <div class="photo-check"></div>
+      <button class="card-download-btn" onclick="event.stopPropagation(); downloadPhoto(${globalIdx})" title="Download">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <img src="${photo.thumb}" alt="" loading="lazy" decoding="async" width="220" height="220">
+      ${overlay}
+    </div>`;
+}
+
+// ── Preloading ────────────────────────────────────────
+function preloadChunk(photos) {
+  photos.forEach(p => {
+    if (p.src === p.thumb) return;
+    if (preloadedImages.has(p.idx)) return;
+    preloadedImages.add(p.idx);
+    const img = new Image();
+    img.src = p.src;
+  });
+}
+
+// ── Gallery ───────────────────────────────────────────
+function renderGallery(photos) {
+  const grid  = document.getElementById('photo-grid');
+  const empty = document.getElementById('gallery-empty');
+  const count = document.getElementById('gallery-count');
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  
+  currentFilteredPhotos = photos; // Store for Load More
+  
+  if (!photos.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    loadMoreBtn.style.display = 'none';
+    count.textContent = '0 photos';
+    return;
+  }
+  
+  empty.style.display = 'none';
+  const showing = Math.min(displayedPhotoCount, photos.length);
+  count.textContent = showing < photos.length 
+    ? `Showing ${showing} of ${photos.length} photo${photos.length !== 1 ? 's' : ''}` 
+    : `${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
+  
+  // Render only first 'displayedPhotoCount' photos
+  const photosToShow = photos.slice(0, displayedPhotoCount);
+  grid.innerHTML = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
+  
+  // preloadChunk(photosToShow); // Preload disabled to save bandwidth
+  
+  // Show/hide Load More button
+  loadMoreBtn.style.display = displayedPhotoCount < photos.length ? '' : 'none';
+}
+
+// Debounce helper
+let filterTimeout;
+function debouncedFilter(query) {
+  clearTimeout(filterTimeout);
+  filterTimeout = setTimeout(() => filterGallery(query), 200);
+}
+
+function filterGallery(query) {
+  const q = query.trim().toLowerCase();
+  displayedPhotoCount = PHOTOS_PER_CHUNK; // Reset count on new search
+  
+  if (!q) { 
+    renderGallery(PHOTOS); 
+    return; 
+  }
+  
+  const filtered = PHOTOS.filter(p => p.names.some(n => n.toLowerCase().includes(q)));
+  renderGallery(filtered);
+}
+
+function loadMorePhotos() {
+  const start = displayedPhotoCount;
+  displayedPhotoCount += PHOTOS_PER_CHUNK;
+  const newChunk = currentFilteredPhotos.slice(start, displayedPhotoCount);
+  
+  const grid = document.getElementById('photo-grid');
+  grid.insertAdjacentHTML('beforeend', newChunk.map(p => photoCardHTML(p, p.idx)).join(''));
+  
+  // preloadChunk(newChunk); // Preload disabled to save bandwidth
+  
+  // Update count and button visibility
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  loadMoreBtn.style.display = displayedPhotoCount < currentFilteredPhotos.length ? '' : 'none';
+  document.getElementById('gallery-count').textContent = 
+    `Showing ${Math.min(displayedPhotoCount, currentFilteredPhotos.length)} of ${currentFilteredPhotos.length} photos`;
+  
+  // Scroll to first new card
+  const firstNew = currentFilteredPhotos[start];
+  if (firstNew) document.getElementById(`card-${firstNew.idx}`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Bulk select ───────────────────────────────────────
+function toggleBulkMode() {
+  bulkMode = !bulkMode;
+  selectedIndices.clear();
+  document.getElementById('photo-grid').classList.toggle('bulk-mode', bulkMode);
+  document.getElementById('bulk-toggle-btn').style.display   = bulkMode ? 'none' : '';
+  document.getElementById('bulk-cancel-btn').style.display   = bulkMode ? '' : 'none';
+  document.getElementById('bulk-download-btn').style.display = 'none';
+  document.getElementById('bulk-count').style.display        = bulkMode ? '' : 'none';
+  document.getElementById('bulk-count').textContent          = '0 selected';
+  document.querySelectorAll('.photo-card.selected').forEach(c => c.classList.remove('selected'));
+}
+
+function handleCardClick(idx, e) {
+  if (bulkMode) {
+    const card = document.getElementById(`card-${idx}`);
+    if (selectedIndices.has(idx)) {
+      selectedIndices.delete(idx);
+      card.classList.remove('selected');
+    } else {
+      selectedIndices.add(idx);
+      card.classList.add('selected');
+    }
+    const n = selectedIndices.size;
+    document.getElementById('bulk-count').textContent = `${n} selected`;
+    document.getElementById('bulk-download-btn').style.display = n > 0 ? '' : 'none';
+  } else {
+    openLightbox(idx);
+  }
+}
+
+// ── Downloads ─────────────────────────────────────────
+function downloadPhoto(idx) {
+  const photo = PHOTOS[idx];
+  const a = document.createElement('a');
+  a.href = photo.src;
+  a.download = photo.src.split('/').pop() || 'photo.jpg';
+  a.click();
+}
+
+async function downloadPhotosIndividually(photos) {
+  for (const photo of photos) {
+    const a = document.createElement('a');
+    a.href = photo.src;
+    a.download = photo.src.split('/').pop() || 'photo.jpg';
+    a.click();
+    await new Promise(r => setTimeout(r, 300));
+  }
+}
+
+function downloadSelected() {
+  downloadPhotosIndividually([...selectedIndices].map(i => PHOTOS[i]));
+}
+
+function downloadPersonPhotos() {
+  if (!currentPersonName) return;
+  
+  // Get merged photos if viewing Binod or Shiv Kumar
+  let photos = PEOPLE[currentPersonName].photos;
+  if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    photos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+  }
+  
+  downloadPhotosIndividually(photos);
+}
+
+// ── People ────────────────────────────────────────────
+function renderPeople() {
+  const grid  = document.getElementById('people-grid');
+  const count = document.getElementById('people-count');
+  
+  // Special case: Merge Binod Singhania and Shiv Kumar Agarwal
+  const filteredList = PEOPLE_LIST.filter(name => name !== 'Shiv Kumar Agarwal');
+  
+  count.textContent = `${filteredList.length} people`;
+  grid.innerHTML = filteredList.map((name, i) => {
+    const person = PEOPLE[name];
+    let photoCount = person.photos.length;
+    let displayName = name;
+    
+    // If this is Binod Singhania, add Shiv Kumar's photos to the count and change display name
+    if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
+      photoCount += PEOPLE['Shiv Kumar Agarwal'].photos.length;
+      displayName = 'Binod & Shiv';
+    }
+
+    return `
+      <div class="person-card" "
+           onclick="openPerson('${name.replace(/'/g, "\\'")}')">
+        <div class="person-avatar-placeholder">${displayName.charAt(0)}</div>
+        <div class="person-info">
+          <div class="person-name">${displayName}</div>
+          <div class="person-count">${photoCount} photo${photoCount !== 1 ? 's' : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+  
+  //   return `
+  //     <div class="person-card" style="animation-delay:${Math.min(i * 0.04, 0.3)}s"
+  //          onclick="openPerson('${name.replace(/'/g, "\\'")}')">
+  //       <div class="person-avatar-placeholder">${name.charAt(0)}</div>
+  //       <div class="person-info">
+  //         <div class="person-name">${name}</div>
+  //         <div class="person-count">${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}</div>
+  //       </div>
+  //     </div>`;
+  // }).join('');
+}
+
+// Debounce helper for people search
+let filterPeopleTimeout;
+function debouncedFilterPeople(query) {
+  clearTimeout(filterPeopleTimeout);
+  filterPeopleTimeout = setTimeout(() => filterPeople(query), 200);
+}
+
+function filterPeople(query) {
+  const q = query.trim().toLowerCase();
+  const grid  = document.getElementById('people-grid');
+  const count = document.getElementById('people-count');
+  
+  // Special case: Merge Binod Singhania and Shiv Kumar Agarwal
+  let filteredList = PEOPLE_LIST.filter(name => name !== 'Shiv Kumar Agarwal');
+  
+  if (q) {
+    // Filter by name
+    filteredList = filteredList.filter(name => {
+      if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
+        // For merged Binod & Shiv Kumar, search in both names and display name
+        return name.toLowerCase().includes(q) || 
+               'Shiv Kumar Agarwal'.toLowerCase().includes(q) ||
+               'Binod & Shiv'.toLowerCase().includes(q);
+      }
+      return name.toLowerCase().includes(q);
+    });
+  }
+  
+  count.textContent = `${filteredList.length} people`;
+  
+  if (filteredList.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">No people found.</div>';
+    return;
+  }
+  
+  grid.innerHTML = filteredList.map((name, i) => {
+    const person = PEOPLE[name];
+    let photoCount = person.photos.length;
+    let displayName = name;
+    
+    // If this is Binod Singhania, add Shiv Kumar's photos to the count and change display name
+    if (name === 'Binod Singhania' && PEOPLE['Shiv Kumar Agarwal']) {
+      photoCount += PEOPLE['Shiv Kumar Agarwal'].photos.length;
+      displayName = 'Binod & Shiv';
+    }
+
+    return `
+      <div class="person-card" "
+           onclick="openPerson('${name.replace(/'/g, "\\'")}')">
+        <div class="person-avatar-placeholder">${displayName.charAt(0)}</div>
+        <div class="person-info">
+          <div class="person-name">${displayName}</div>
+          <div class="person-count">${photoCount} photo${photoCount !== 1 ? 's' : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openPerson(name) {
+  currentPersonName = name;
+  displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
+  
+  // Special case: Merge Binod and Shiv Kumar's photos
+  let person = PEOPLE[name];
+  let allPhotos = [...person.photos];
+  let displayName = name;
+  let funnyNote = '';
+  
+  if ((name === 'Binod Singhania' || name === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    // Merge both people's photos
+    allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+    displayName = 'Binod & Shiv';
+    funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+    // Update person object to use merged photos
+    person = { photos: allPhotos };
+  }
+  
+  document.getElementById('people-list-view').style.display = 'none';
+  document.getElementById('people-detail-view').classList.add('active');
+  document.getElementById('detail-name').textContent  = displayName;
+  
+  const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
+  document.getElementById('detail-count').innerHTML = (showing < person.photos.length 
+    ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
+    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`) + funnyNote;
+  
+  document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${displayName.charAt(0)}</div>`;
+  
+  const photosToShow = person.photos.slice(0, displayedPersonPhotoCount);
+  document.getElementById('detail-grid').innerHTML    = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
+  
+  // Show/hide Load More button
+  const loadMoreBtn = document.getElementById('person-load-more-btn');
+  loadMoreBtn.style.display = displayedPersonPhotoCount < person.photos.length ? '' : 'none';
+  
+  // preloadChunk(photosToShow); // Preload disabled to save bandwidth
+  
+  // Update URL
+  const url = new URL(window.location);
+  url.searchParams.set('person', name);
+  window.history.pushState({}, '', url);
+}
+
+function loadMorePersonPhotos() {
+  if (!currentPersonName) return;
+  
+  // Get merged photos if viewing Binod or Shiv Kumar
+  let person = PEOPLE[currentPersonName];
+  if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    const allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+    person = { photos: allPhotos };
+  }
+  
+  const start = displayedPersonPhotoCount;
+  displayedPersonPhotoCount += PHOTOS_PER_CHUNK;
+  const newChunk = person.photos.slice(start, displayedPersonPhotoCount);
+  
+  const grid = document.getElementById('detail-grid');
+  grid.insertAdjacentHTML('beforeend', newChunk.map(p => photoCardHTML(p, p.idx)).join(''));
+  
+  // preloadChunk(newChunk); // Preload disabled to save bandwidth
+  
+  // Update count and button visibility
+  const loadMoreBtn = document.getElementById('person-load-more-btn');
+  loadMoreBtn.style.display = displayedPersonPhotoCount < person.photos.length ? '' : 'none';
+  
+  const showing = Math.min(displayedPersonPhotoCount, person.photos.length);
+  let funnyNote = '';
+  if ((currentPersonName === 'Binod Singhania' || currentPersonName === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+    funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+  }
+  document.getElementById('detail-count').innerHTML = (showing < person.photos.length 
+    ? `Showing ${showing} of ${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}` 
+    : `${person.photos.length} photo${person.photos.length !== 1 ? 's' : ''}`) + funnyNote;
+  
+  // Scroll to first new card
+  const firstNew = person.photos[start];
+  if (firstNew) document.getElementById(`card-${firstNew.idx}`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closePerson() {
+  currentPersonName = null;
+  displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset for next person
+  document.getElementById('people-list-view').style.display = 'block';
+  document.getElementById('people-detail-view').classList.remove('active');
+  
+  // Clear people search
+  const peopleSearchInput = document.getElementById('people-search-input');
+  if (peopleSearchInput) {
+    peopleSearchInput.value = '';
+    renderPeople();
+  }
+  
+  // Update URL
+  const url = new URL(window.location);
+  url.searchParams.delete('person');
+  window.history.pushState({}, '', url);
+}
+
+// ── Navigation ────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  event.target.classList.add('active');
+  if (id !== 'people') closePerson();
+  if (bulkMode) toggleBulkMode();
+  
+  // Reset gallery pagination when switching to gallery
+  if (id === 'gallery') {
+    displayedPhotoCount = PHOTOS_PER_CHUNK;
+    // const searchValue = document.getElementById('search-input').value.trim();
+    // if (searchValue) {
+    //   filterGallery(searchValue);
+    // } else {
+      renderGallery(PHOTOS);
+    // }
+  }
+  
+  // Reset people search when switching to people page
+  if (id === 'people') {
+    const peopleSearchInput = document.getElementById('people-search-input');
+    if (peopleSearchInput) {
+      peopleSearchInput.value = '';
+      renderPeople();
+    }
+  }
+  
+  // Update URL
+  const url = new URL(window.location);
+  if (id === 'gallery') {
+    url.searchParams.set('page', 'gallery');
+  } else if (id === 'people') {
+    url.searchParams.delete('page');
+    // Keep person param if it exists
+    if (!url.searchParams.has('person')) {
+      // Do nothing, we're on people list
+    }
+  }
+  window.history.pushState({}, '', url);
+}
+
+// ── Lightbox ──────────────────────────────────────────
+function openLightbox(idx, photosContext = null) {
+  currentLightboxIdx = idx;
+  
+  // Determine which photos to show in carousel
+  if (photosContext) {
+    currentLightboxPhotos = photosContext;
+  } else if (currentPersonName && PEOPLE[currentPersonName]) {
+    currentLightboxPhotos = PEOPLE[currentPersonName].photos;
+  } else {
+    // Check if we're in filtered gallery mode
+    const searchInput = document.getElementById('search-input');
+    const searchValue = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (searchValue) {
+      currentLightboxPhotos = PHOTOS.filter(p => p.names.some(n => n.toLowerCase().includes(searchValue)));
+    } else {
+      currentLightboxPhotos = PHOTOS;
+    }
+  }
+  
+  // Find position in context
+  currentContextPosition = currentLightboxPhotos.findIndex(p => p.idx === currentLightboxIdx);
+  
+  updateLightboxContent();
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function buildCarousel() {
+  const carousel = document.getElementById('lightbox-carousel');
+  const start = Math.max(0, currentContextPosition - CAROUSEL_WINDOW);
+  const end = Math.min(currentLightboxPhotos.length - 1, currentContextPosition + CAROUSEL_WINDOW);
+  
+  carousel.innerHTML = currentLightboxPhotos.slice(start, end + 1).map((p, i) => {
+    const pos = start + i;
+    const isActive = pos === currentContextPosition;
+    return `<img src="${p.thumb}" 
+                 class="carousel-thumb${isActive ? ' active' : ''}"
+                 data-pos="${pos}" data-idx="${p.idx}"
+                 onclick="jumpToPhoto(${p.idx}, ${pos})" 
+                 alt="" loading="lazy">`;
+  }).join('');
+  
+  // Scroll active into view
+  const active = carousel.querySelector('.carousel-thumb.active');
+  if (active) active.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+}
+
+function updateLightboxContent() {
+  const photo = PHOTOS[currentLightboxIdx];
+  const img = document.getElementById('lightbox-img');
+  
+  // Immediately hide old image
+  img.classList.add('loading');
+  
+  // When new image is ready, fade it in
+  img.onload = () => img.classList.remove('loading');
+  
+  // Set src AFTER attaching onload
+  img.src = photo.src;
+  
+  // document.getElementById('lightbox-names').innerHTML = photo.names.map(n => `<span class="name-tag">${n}</span>`).join(''); // Name tags disabled
+  document.getElementById('lightbox-names').innerHTML = ''; // Name tags disabled
+  
+  buildCarousel(); // Only renders ~20 thumbnails
+  
+  // Update navigation buttons
+  const prevBtn = document.getElementById('lightbox-prev');
+  const nextBtn = document.getElementById('lightbox-next');
+  
+  prevBtn.classList.toggle('disabled', currentContextPosition <= 0);
+  nextBtn.classList.toggle('disabled', currentContextPosition >= currentLightboxPhotos.length - 1);
+}
+
+function navigateLightbox(direction) {
+  const newPosition = currentContextPosition + direction;
+  
+  if (newPosition >= 0 && newPosition < currentLightboxPhotos.length) {
+    currentContextPosition = newPosition;
+    currentLightboxIdx = currentLightboxPhotos[newPosition].idx;
+    updateLightboxContent();
+  }
+}
+
+function jumpToPhoto(idx, pos) {
+  currentLightboxIdx = idx;
+  currentContextPosition = pos;
+  updateLightboxContent();
+}
+
+function closeLightbox(e) {
+  if (e && e.target !== document.getElementById('lightbox') &&
+      !e.target.classList.contains('lightbox-close')) return;
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  const lightbox = document.getElementById('lightbox');
+  if (!lightbox.classList.contains('open')) return;
+  
+  if (e.key === 'Escape') {
+    closeLightbox({ target: lightbox });
+  } else if (e.key === 'ArrowLeft') {
+    navigateLightbox(-1);
+  } else if (e.key === 'ArrowRight') {
+    navigateLightbox(1);
+  }
+});
+
+// ── URL search ────────────────────────────────────────
+function restorePageState() {
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('page');
+  const person = params.get('person');
+  const searchName = params.get('name');
+  
+  // Switch to gallery page if needed
+  if (page === 'gallery') {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-gallery').classList.add('active');
+    document.querySelectorAll('.nav-tab')[1].classList.add('active');
+    displayedPhotoCount = PHOTOS_PER_CHUNK;
+    renderGallery(PHOTOS);
+  } else if (person && PEOPLE[person]) {
+    // Open specific person (people page is already active by default)
+    currentPersonName = person;
+    displayedPersonPhotoCount = PHOTOS_PER_CHUNK; // Reset to first chunk
+    
+    // Special case: Merge Binod and Shiv Kumar's photos
+    let personData = PEOPLE[person];
+    let allPhotos = [...personData.photos];
+    let displayName = person;
+    let funnyNote = '';
+    
+    if ((person === 'Binod Singhania' || person === 'Shiv Kumar Agarwal') && PEOPLE['Binod Singhania'] && PEOPLE['Shiv Kumar Agarwal']) {
+      // Merge both people's photos
+      allPhotos = [...PEOPLE['Binod Singhania'].photos, ...PEOPLE['Shiv Kumar Agarwal'].photos];
+      displayName = 'Binod & Shiv';
+      funnyNote = '<div style="background: var(--surface2); padding: 14px 18px; border-radius: 8px; margin-top: 12px; color: var(--text); font-size: 15px; font-weight: 600; font-style: italic;">😅 Even AI couldn\'t tell these two legends apart!</div>';
+      // Update person object to use merged photos
+      personData = { photos: allPhotos };
+    }
+    
+    document.getElementById('people-list-view').style.display = 'none';
+    document.getElementById('people-detail-view').classList.add('active');
+    document.getElementById('detail-name').textContent  = displayName;
+    
+    const showing = Math.min(displayedPersonPhotoCount, personData.photos.length);
+    document.getElementById('detail-count').innerHTML = (showing < personData.photos.length 
+      ? `Showing ${showing} of ${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}` 
+      : `${personData.photos.length} photo${personData.photos.length !== 1 ? 's' : ''}`) + funnyNote;
+    
+    document.getElementById('detail-avatar').innerHTML  = `<div class="person-hero-placeholder">${displayName.charAt(0)}</div>`;
+    
+    const photosToShow = personData.photos.slice(0, displayedPersonPhotoCount);
+    document.getElementById('detail-grid').innerHTML = photosToShow.map(p => photoCardHTML(p, p.idx)).join('');
+    
+    // Show/hide Load More button
+    const loadMoreBtn = document.getElementById('person-load-more-btn');
+    loadMoreBtn.style.display = displayedPersonPhotoCount < personData.photos.length ? '' : 'none';
+    
+    // preloadChunk(photosToShow); // Preload disabled to save bandwidth
+  }
+  // else: Default is people list page (already active)
+}
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', () => {
+  restorePageState();
+});
+
+init();
+</script>
+</body>
+</html>
