@@ -944,7 +944,14 @@ function photoCardHTML(photo, globalIdx) {
   // const overlay = `<div class="photo-overlay">${photo.names.length ? `<div class="photo-names">${tags}</div>` : ''}</div>`;
   const overlay = `<div class="photo-overlay"></div>`; // Name tags disabled
   return `
-    <div class="photo-card" id="card-${globalIdx}" onclick="handleCardClick(${globalIdx}, event)">
+    <div class="photo-card" id="card-${globalIdx}" 
+         onclick="handleCardClick(${globalIdx}, event)"
+         ontouchstart="handleLongPressStart(${globalIdx}, event)"
+         ontouchend="handleLongPressEnd(event)"
+         ontouchmove="handleLongPressCancel()"
+         onmousedown="handleLongPressStart(${globalIdx}, event)"
+         onmouseup="handleLongPressEnd(event)"
+         onmouseleave="handleLongPressCancel()">
       <div class="photo-check"></div>
       <button class="card-share-btn" onclick="event.stopPropagation(); sharePhoto(${globalIdx})" title="Share">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -1044,6 +1051,77 @@ function loadMorePhotos() {
 }
 
 // ── Bulk select ───────────────────────────────────────
+let longPressTimer = null;
+let longPressTriggered = false;
+
+function handleLongPressStart(idx, e) {
+  // Don't trigger long press on button clicks
+  if (e.target.tagName === 'BUTTON' || e.target.tagName === 'svg' || e.target.tagName === 'path') {
+    return;
+  }
+  
+  longPressTriggered = false;
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    
+    // Enable bulk mode if not already enabled
+    if (!bulkMode) {
+      toggleBulkMode();
+    }
+    
+    // Select this card
+    const card = document.getElementById(`card-${idx}`);
+    if (card && !selectedIndices.has(idx)) {
+      selectedIndices.add(idx);
+      card.classList.add('selected');
+      
+      // Update counts
+      const n = selectedIndices.size;
+      const showButtons = n > 0 ? '' : 'none';
+      
+      // Update gallery page buttons
+      const galleryCount = document.getElementById('bulk-count');
+      const galleryShare = document.getElementById('bulk-share-btn');
+      const galleryDownload = document.getElementById('bulk-download-btn');
+      if (galleryCount) {
+        galleryCount.textContent = `${n} selected`;
+        galleryShare.style.display = showButtons;
+        galleryDownload.style.display = showButtons;
+      }
+      
+      // Update person page buttons
+      const personCount = document.getElementById('person-bulk-count');
+      const personShare = document.getElementById('person-bulk-share-btn');
+      const personDownload = document.getElementById('person-bulk-download-btn');
+      if (personCount) {
+        personCount.textContent = `${n} selected`;
+        personShare.style.display = showButtons;
+        personDownload.style.display = showButtons;
+      }
+    }
+    
+    // Haptic feedback on mobile
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+  }, 500); // 500ms for long press
+}
+
+function handleLongPressEnd(e) {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+}
+
+function handleLongPressCancel() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  longPressTriggered = false;
+}
+
 function toggleBulkMode() {
   bulkMode = !bulkMode;
   selectedIndices.clear();
@@ -1092,6 +1170,12 @@ function toggleBulkMode() {
 }
 
 function handleCardClick(idx, e) {
+  // Prevent opening lightbox if long press was triggered
+  if (longPressTriggered) {
+    longPressTriggered = false;
+    return;
+  }
+  
   if (bulkMode) {
     const card = document.getElementById(`card-${idx}`);
     if (selectedIndices.has(idx)) {
