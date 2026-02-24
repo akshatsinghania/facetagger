@@ -482,7 +482,7 @@
   /* Card download button */
   .card-download-btn {
     position: absolute;
-    top: 8px; left: 8px;
+    top: 8px; right: 8px;
     width: 30px; height: 30px;
     border-radius: 50%;
     background: rgba(0,0,0,0.6);
@@ -657,10 +657,9 @@
 <body>
 
 <nav>
-  <span class="nav-logo">Memories</span>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('gallery')">All Photos</button>
-    <button class="nav-tab" onclick="showPage('people')">People</button>
+    <button class="nav-tab" onclick="showPage('people')">Find your photos by name</button>
   </div>
 </nav>
 
@@ -807,7 +806,7 @@ async function init() {
   PHOTOS = data.map((d,index) => {
     const rawNames = [].concat(d.PersonInImage || []);
     // const names = rawNames.filter(n => n && n.trim() !== '' && n.toLowerCase() !== 'null');
-    const names = [...new Set(rawNames.map(n => String(n)).filter(n => n && n.trim() !== '' && n.toLowerCase() !== 'null'))];
+    const names = [...new Set(rawNames.map(n => String(n)).filter(n => n && n.trim() !== '' && n.toLowerCase() !== 'null' && n.toLowerCase() !== 'check'))];
     return { 
       idx:index,
       src: d.newSrc, 
@@ -832,8 +831,9 @@ async function init() {
 
 // ── Photo card ────────────────────────────────────────
 function photoCardHTML(photo, globalIdx) {
-  const tags = photo.names.map(n => `<span class="name-tag">${n}</span>`).join('');
-  const overlay = `<div class="photo-overlay">${photo.names.length ? `<div class="photo-names">${tags}</div>` : ''}</div>`;
+  // const tags = photo.names.map(n => `<span class="name-tag">${n}</span>`).join('');
+  // const overlay = `<div class="photo-overlay">${photo.names.length ? `<div class="photo-names">${tags}</div>` : ''}</div>`;
+  const overlay = `<div class="photo-overlay"></div>`; // Name tags disabled
   return `
     <div class="photo-card" id="card-${globalIdx}" onclick="handleCardClick(${globalIdx}, event)">
       <div class="photo-check"></div>
@@ -1183,7 +1183,8 @@ function updateLightboxContent() {
   // Set src AFTER attaching onload
   img.src = photo.src;
   
-  document.getElementById('lightbox-names').innerHTML = photo.names.map(n => `<span class="name-tag">${n}</span>`).join('');
+  // document.getElementById('lightbox-names').innerHTML = photo.names.map(n => `<span class="name-tag">${n}</span>`).join(''); // Name tags disabled
+  document.getElementById('lightbox-names').innerHTML = ''; // Name tags disabled
   
   buildCarousel(); // Only renders ~20 thumbnails
   
