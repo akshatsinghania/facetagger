@@ -1425,6 +1425,12 @@ function restorePageState() {
       personData = { photos: allPhotos };
     }
     
+    // Ensure we're on people page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-people').classList.add('active');
+    document.querySelectorAll('.nav-tab')[0].classList.add('active');
+    
     document.getElementById('people-list-view').style.display = 'none';
     document.getElementById('people-detail-view').classList.add('active');
     document.getElementById('detail-name').textContent  = displayName;
@@ -1444,8 +1450,29 @@ function restorePageState() {
     loadMoreBtn.style.display = displayedPersonPhotoCount < personData.photos.length ? '' : 'none';
     
     // preloadChunk(photosToShow); // Preload disabled to save bandwidth
+  } else {
+    // Default: People list page
+    // Ensure we're on people page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-people').classList.add('active');
+    document.querySelectorAll('.nav-tab')[0].classList.add('active');
+    
+    // Close person detail if it's open
+    if (currentPersonName) {
+      currentPersonName = null;
+      displayedPersonPhotoCount = PHOTOS_PER_CHUNK;
+      document.getElementById('people-list-view').style.display = 'block';
+      document.getElementById('people-detail-view').classList.remove('active');
+      
+      // Clear people search
+      const peopleSearchInput = document.getElementById('people-search-input');
+      if (peopleSearchInput) {
+        peopleSearchInput.value = '';
+        renderPeople();
+      }
+    }
   }
-  // else: Default is people list page (already active)
 }
 
 // Handle browser back/forward buttons
